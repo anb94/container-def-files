@@ -1,0 +1,71 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Author Dr_Adam_N_Bennett
+    Application BandageNG
+    Description BandageNG built from source in Ubuntu 24.04 with Qt 6
+
+%environment
+    export QT_X11_NO_MITSHM=1
+    export LIBGL_ALWAYS_INDIRECT=1
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        cmake \
+        ninja-build \
+        g++ \
+        pkg-config \
+        qt6-base-dev \
+        qt6-base-dev-tools \
+        qt6-svg-dev \
+        libgl1-mesa-dev \
+        libegl1-mesa-dev \
+        libxkbcommon-dev \
+        libxkbcommon-x11-dev \
+        libxcb-cursor-dev \
+        libxcb-icccm4-dev \
+        libxcb-image0-dev \
+        libxcb-keysyms1-dev \
+        libxcb-randr0-dev \
+        libxcb-render-util0-dev \
+        libxcb-shape0-dev \
+        libxcb-xfixes0-dev \
+        libx11-xcb-dev \
+        libfontconfig1-dev \
+        libfreetype6-dev \
+        libdbus-1-dev \
+        libnss3-dev \
+        libasound2-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    git clone --depth 1 https://github.com/asl/BandageNG.git /opt/BandageNG
+
+    cmake -S /opt/BandageNG -B /opt/BandageNG/build \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release
+
+    cmake --build /opt/BandageNG/build --parallel "$(nproc)"
+
+    bandage_bin="$(find /opt/BandageNG/build \
+        -type f \
+        -name BandageNG \
+        -executable \
+        -print \
+        -quit)"
+
+    test -n "$bandage_bin"
+
+    install -D -m 0755 \
+        "$bandage_bin" \
+        /opt/bandage-ng/bin/BandageNG
+
+    rm -rf /opt/BandageNG /root/.cache
+
+%runscript
+    exec /opt/bandage-ng/bin/BandageNG "$@"
